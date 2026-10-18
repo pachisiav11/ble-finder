@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.blefinder.android.ui.DeviceListScreen
 import com.blefinder.android.ui.DiagnosticsScreen
 import com.blefinder.android.ui.PermissionScreen
 import com.blefinder.android.ui.theme.BleFinderTheme
@@ -53,11 +54,19 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.runtime.Composable
 private fun AppNavHost() {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = Routes.DIAGNOSTICS) {
-        composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = null) }
+    NavHost(navController = nav, startDestination = Routes.DEVICES) {
+        composable(Routes.DEVICES) {
+            DeviceListScreen(
+                onOpen = { },
+                onDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
+                onSettings = null,
+            )
+        }
+        composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
     }
 }
 
 object Routes {
+    const val DEVICES = "devices"
     const val DIAGNOSTICS = "diagnostics"
 }

@@ -38,10 +38,3 @@ fun DeviceKind.icon(): ImageVector = when (this) {
 }
 
 fun signalColor(strength: Double): Color = Color(ColorRamp.argb(strength))
-
-fun formatAge(seconds: Double): String = when {
-    seconds < 10 -> "%.1f s ago".format(seconds)
-    seconds < 90 -> "${seconds.toInt()} s ago"
-    seconds < 5400 -> "${(seconds / 60).toInt()} min ago"
-    else -> "${(seconds / 3600).toInt()} h ago"
-}

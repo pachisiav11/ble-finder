@@ -50,8 +50,8 @@ import com.blefinder.android.bluetooth.Source
 import com.blefinder.android.bluetooth.SourceTest
 import com.blefinder.android.diagnostics.DiagnosticsInput
 import com.blefinder.android.diagnostics.DiagnosticsReport
+import com.blefinder.android.signal.SignalMath.formatAge
 import com.blefinder.android.signal.SignalState
-import com.blefinder.android.ui.components.formatAge
 import com.blefinder.android.ui.components.icon
 import com.blefinder.android.ui.components.rememberNowNanos
 

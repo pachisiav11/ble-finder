@@ -44,4 +44,11 @@ object SignalMath {
     /** 0..1 position of [rssi] between [cold] and [hot] dBm. */
     fun strength(rssi: Double, cold: Int = -100, hot: Int = -40): Double =
         ((rssi - cold) / (hot - cold)).coerceIn(0.0, 1.0)
+
+    fun formatAge(seconds: Double): String = when {
+        seconds < 10 -> "%.1f s ago".format(seconds)
+        seconds < 90 -> "${seconds.toInt()} s ago"
+        seconds < 5400 -> "${(seconds / 60).toInt()} min ago"
+        else -> "${(seconds / 3600).toInt()} h ago"
+    }
 }
