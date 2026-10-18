@@ -20,10 +20,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.blefinder.android.ui.DeviceListScreen
 import com.blefinder.android.ui.DiagnosticsScreen
 import com.blefinder.android.ui.FinderScreen
 import com.blefinder.android.ui.PermissionScreen
+import com.blefinder.android.ui.SettingsScreen
 import com.blefinder.android.ui.theme.BleFinderTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,7 +43,7 @@ class MainActivity : ComponentActivity() {
                     // arrives, since the permission dialog only pauses the activity) and stopped on ON_STOP.
                     LifecycleStartEffect(hasBluetooth) {
                         if (hasBluetooth) context.app.bluetooth.start()
-                        onStopOrDispose { context.app.bluetooth.stop() }
+                        onStopOrDispose { if (hasBluetooth) context.app.bluetooth.stop() }
                     }
 
                     if (!hasBluetooth) {
@@ -63,11 +65,17 @@ private fun AppNavHost() {
             DeviceListScreen(
                 onOpen = { address -> nav.navigate(Routes.finder(address)) },
                 onDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
-                onSettings = null,
+                onSettings = { nav.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
-        composable(Routes.FINDER, arguments = listOf(navArgument("address") { type = NavType.StringType })) { entry ->
+        composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
+        composable(
+            Routes.FINDER,
+            arguments = listOf(navArgument("address") { type = NavType.StringType }),
+            // Only reachable in debug builds, whose manifest adds the matching intent filter (used for emulator smoke tests).
+            deepLinks = listOf(navDeepLink { uriPattern = "blefinder-debug://finder/{address}" }),
+        ) { entry ->
             FinderScreen(address = Uri.decode(entry.arguments?.getString("address").orEmpty()), onBack = { nav.popBackStack() })
         }
     }
@@ -76,6 +84,7 @@ private fun AppNavHost() {
 object Routes {
     const val DEVICES = "devices"
     const val DIAGNOSTICS = "diagnostics"
+    const val SETTINGS = "settings"
     const val FINDER = "finder/{address}"
 
     fun finder(address: String) = "finder/${Uri.encode(address)}"

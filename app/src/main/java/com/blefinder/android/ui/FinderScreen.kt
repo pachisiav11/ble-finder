@@ -78,11 +78,12 @@ fun FinderScreen(address: String, onBack: () -> Unit) {
 
     val device = devices.firstOrNull { it.address == address }
     val name = saved.nameFor(address, device?.name ?: address)
+    val settings by app.settings.collectAsStateWithLifecycle()
     val signal = signals[address]
     val fresh = signal?.isFresh(now) == true
-    val strength = signal?.let { SignalMath.strength(it.filtered) } ?: 0.0
+    val strength = signal?.let { SignalMath.strength(it.filtered, settings.gaugeCold, settings.gaugeHot) } ?: 0.0
 
-    var vibrate by rememberSaveable { mutableStateOf(true) }
+    var vibrate by rememberSaveable { mutableStateOf(app.settings.value.vibrateByDefault) }
     val session: MapSession = viewModel(key = "map-$address") { MapSession(address, app.tracker, app.motion) }
     val frame by session.frame.collectAsStateWithLifecycle()
     var motion by remember { mutableStateOf(app.motion.availability()) }

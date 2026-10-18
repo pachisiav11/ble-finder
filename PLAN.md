@@ -335,42 +335,59 @@ device.
   dead-reckoning step, heading axis choice.
 - The emulator (`Pixel_Fold_API_35`) is for UI and permission flow only — it cannot hear
   the user's devices. Start it as a background task, not `nohup … &`.
+- The emulator has no pairable devices, so the debug build adds a deep link that opens the
+  finder for any address:
+  `adb shell am start -S -a android.intent.action.VIEW -d "blefinder-debug://finder/AA:BB:CC:DD:EE:FF" com.blefinder.android.debug`
+  (the intent filter lives in `app/src/debug/AndroidManifest.xml`; release builds lack it).
+- Smoke-test checklist: permission flow, list empty state, ⋮ menu, Settings persist across a
+  restart, Diagnostics + Copy report, finder (GATT fallback status, classic search on/off,
+  vibration toggle), going to the background and back without a crash, dark mode.
 - Real-device testing is done by the user, using Diagnostics → Copy report.
 
-## File / folder structure (target)
+## File / folder structure
 
 ```
 app/src/main/java/com/blefinder/android/
-  MainActivity.kt
+  BleFinderApp.kt          app-wide singletons (repository, tracker, stores, motion)
+  MainActivity.kt          permission gate, scan lifecycle, navigation
+  Permissions.kt
   bluetooth/
-    BluetoothRepository.kt
+    BluetoothRepository.kt source coordination, finder target, Diagnostics test
     KnownDevices.kt
     LeScanner.kt
     GattRssiPoller.kt
     ClassicInquiry.kt
+    ScanThrottle.kt
+    Model.kt
   signal/
     KalmanFilter.kt
     SignalTracker.kt
-    Distance.kt
+    SignalMath.kt          distance, bars, strength, vibration interval, formatting
+    ColorRamp.kt           shared by list, gauge and map
   motion/
     MotionTracker.kt
-    Heading.kt
+    Heading.kt             heading axis choice + Pose
   map/
-    HeatmapGrid.kt
-    ColorRamp.kt
+    HeatmapGrid.kt         grid, colour scale, heat raster
+    MapSession.kt          per-finder-visit ViewModel
   data/
     SavedDevices.kt
+    SettingsStore.kt
+  diagnostics/
+    DiagnosticsReport.kt
   ui/
     PermissionScreen.kt
     DeviceListScreen.kt
+    DeviceRows.kt          list ordering, filters, subtitles (pure)
     FinderScreen.kt
+    FinderMapArea.kt
     DiagnosticsScreen.kt
-    components/
-      Gauge.kt
-      HeatmapCanvas.kt
+    SettingsScreen.kt
+    components/            Gauge, SignalBars, shared helpers
     theme/
+app/src/debug/AndroidManifest.xml   finder deep link for emulator smoke tests
 app/src/test/java/com/blefinder/android/
-  signal/  motion/  map/
+  bluetooth/  diagnostics/  map/  motion/  signal/  ui/
 ```
 
 ---

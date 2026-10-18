@@ -136,7 +136,7 @@ fun DiagnosticsScreen(onBack: (() -> Unit)?) {
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 Text(
-                    "Run \"Test all sources\" on each device you want to find, then tap Copy report and paste it into the chat.",
+                    "Run \"Test all sources\" on each device you want to find, then tap Copy report and include the text when you report a problem.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

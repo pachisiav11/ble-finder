@@ -155,8 +155,10 @@ class KnownDevices(private val context: Context, private val manager: BluetoothM
 
     private fun closeProxies() {
         val a = adapter
-        proxies.forEach { (profile, proxy) -> runCatching { a?.closeProfileProxy(profile, proxy) } }
+        // closeProfileProxy() calls onServiceDisconnected() synchronously, which edits the map.
+        val open = proxies.toMap()
         proxies.clear()
+        open.forEach { (profile, proxy) -> runCatching { a?.closeProfileProxy(profile, proxy) } }
     }
 
     private fun device(intent: Intent): BluetoothDevice? =

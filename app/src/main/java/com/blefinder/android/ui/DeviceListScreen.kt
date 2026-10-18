@@ -78,7 +78,7 @@ import kotlin.math.roundToInt
 fun DeviceListScreen(
     onOpen: (address: String) -> Unit,
     onDiagnostics: () -> Unit,
-    onSettings: (() -> Unit)?,
+    onSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.app
@@ -86,6 +86,7 @@ fun DeviceListScreen(
     val bluetoothOn by app.bluetooth.known.adapterOn.collectAsStateWithLifecycle()
     val signals by app.tracker.states.collectAsStateWithLifecycle()
     val saved by app.saved.collectAsStateWithLifecycle()
+    val settings by app.settings.collectAsStateWithLifecycle()
     val now by rememberNowNanos()
     var filter by rememberSaveable { mutableStateOf(DeviceFilter.ALL) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -110,9 +111,7 @@ fun DeviceListScreen(
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More") }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(text = { Text("Diagnostics") }, onClick = { menuOpen = false; onDiagnostics() })
-                            if (onSettings != null) {
-                                DropdownMenuItem(text = { Text("Settings") }, onClick = { menuOpen = false; onSettings() })
-                            }
+                            DropdownMenuItem(text = { Text("Settings") }, onClick = { menuOpen = false; onSettings() })
                             DropdownMenuItem(text = { Text("Refresh") }, onClick = { menuOpen = false; app.bluetooth.refresh() })
                         }
                     }
@@ -165,6 +164,7 @@ fun DeviceListScreen(
                 DeviceRowItem(
                     row = row,
                     now = now,
+                    strength = { SignalMath.strength(it, settings.gaugeCold, settings.gaugeHot) },
                     onOpen = { onOpen(row.device.address) },
                     onPin = { scope.launch { app.savedDevices.setPinned(row.device.address, !row.pinned) } },
                     onRename = { renaming = row },
@@ -188,7 +188,7 @@ fun DeviceListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DeviceRowItem(row: DeviceRow, now: Long, onOpen: () -> Unit, onPin: () -> Unit, onRename: () -> Unit) {
+private fun DeviceRowItem(row: DeviceRow, now: Long, strength: (Double) -> Double, onOpen: () -> Unit, onPin: () -> Unit, onRename: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Box {
         Row(
@@ -231,7 +231,7 @@ private fun DeviceRowItem(row: DeviceRow, now: Long, onOpen: () -> Unit, onPin: 
                 Column(horizontalAlignment = Alignment.End, modifier = Modifier.alpha(if (row.fresh) 1f else 0.4f)) {
                     SignalBars(
                         filled = if (row.fresh) SignalMath.bars(s.filtered) else 0,
-                        color = signalColor(SignalMath.strength(s.filtered)),
+                        color = signalColor(strength(s.filtered)),
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(

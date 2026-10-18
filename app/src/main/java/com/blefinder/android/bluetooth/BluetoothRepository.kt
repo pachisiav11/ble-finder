@@ -52,6 +52,7 @@ class BluetoothRepository(
     val test: StateFlow<SourceTest?> = _test.asStateFlow()
 
     private var started = false
+    private var holders = 0
     private var target: String? = null
     private var targetJob: Job? = null
     private var testJob: Job? = null
@@ -72,8 +73,13 @@ class BluetoothRepository(
         }
     }
 
-    /** Called when the activity becomes visible. Nothing runs in the background. */
+    /**
+     * Called when an activity becomes visible, paired with [stop]. Nothing runs in the background.
+     * Counted because two activity instances can overlap (a relaunched task starts the new one
+     * before the old one stops); scanning ends only when the last one stops.
+     */
     fun start() {
+        holders++
         if (started || !Permissions.hasBluetooth(context)) return
         started = true
         known.start()
@@ -82,7 +88,8 @@ class BluetoothRepository(
     }
 
     fun stop() {
-        if (!started) return
+        holders = (holders - 1).coerceAtLeast(0)
+        if (holders > 0 || !started) return
         started = false
         targetJob?.cancel()
         testJob?.cancel()

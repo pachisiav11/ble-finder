@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +35,8 @@ fun Gauge(strength: Double, label: String, sublabel: String, active: Boolean, mo
     val color = signalColor(animated.toDouble())
     Box(
         modifier
+            // Capped so wide screens (landscape, tablets, unfolded foldables) keep room for the map.
+            .widthIn(max = 360.dp)
             .fillMaxWidth()
             .aspectRatio(2f)
             .alpha(if (active) 1f else 0.4f),
