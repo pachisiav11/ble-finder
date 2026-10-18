@@ -2,6 +2,7 @@ package com.blefinder.android.diagnostics
 
 import com.blefinder.android.bluetooth.KnownDevice
 import com.blefinder.android.bluetooth.Source
+import com.blefinder.android.bluetooth.SourceTestResult
 import com.blefinder.android.bluetooth.UnmatchedAdvert
 import com.blefinder.android.signal.SignalState
 
@@ -20,20 +21,36 @@ data class DiagnosticsInput(
     val classicRunning: Boolean,
     val devices: List<KnownDevice>,
     val signals: Map<String, SignalState>,
+    val tests: Map<String, SourceTestResult>,
     val unmatched: Collection<UnmatchedAdvert>,
     val nowNanos: Long,
 )
 
 /** Plain-text report the user pastes into chat; it is the only feedback channel from their phone. */
 object DiagnosticsReport {
-    /** Adverts carrying a known device's name from a different address: the address-matching failure mode. */
+    /**
+     * Adverts carrying a known device's name from a different address: the address-matching
+     * failure mode. Checks the device's own name too, since adverts never carry the user's alias.
+     */
     fun nameMatches(devices: List<KnownDevice>, unmatched: Collection<UnmatchedAdvert>): List<UnmatchedAdvert> {
-        val names = devices.mapTo(HashSet()) { it.name.lowercase() }
+        val names = HashSet<String>()
+        devices.forEach { d ->
+            names += d.name.lowercase()
+            d.ownName?.let { names += it.lowercase() }
+        }
         return unmatched.filter { it.name.lowercase() in names }.sortedBy { it.name }
+    }
+
+    fun testSummary(t: SourceTestResult): String {
+        val gatt = (if (t.gattConnected) "connected" else "never connected") + (if (t.gattError != 0) ", error ${t.gattError}" else "")
+        return "BLE +${t.adv}, GATT +${t.gatt} ($gatt), classic +${t.classic}"
     }
 
     fun build(input: DiagnosticsInput): String = buildString {
         fun yn(b: Boolean) = if (b) "yes" else "no"
+        fun advert(u: UnmatchedAdvert) =
+            "- \"${u.name}\" at ${u.address}, ${u.rssi} dBm, %.1f s ago".format(maxOf(0.0, (input.nowNanos - u.timeNanos) / 1e9))
+
         appendLine("BLE Finder diagnostics — app ${input.appVersion}")
         appendLine("Phone: ${input.phone}, ${input.android}")
         append("Bluetooth: ${if (input.bluetoothOn) "on" else "off"}")
@@ -50,7 +67,8 @@ object DiagnosticsReport {
         appendLine("Known devices (${input.devices.size}):")
         input.devices.forEach { d ->
             val conn = if (d.connected.isEmpty()) "not connected" else "connected: " + d.connected.joinToString("+")
-            appendLine("- ${d.name} [${d.address}] ${d.type}, ${d.kind}, ${if (d.bonded) "bonded" else "not bonded"}, $conn")
+            val own = d.ownName?.let { " (own name \"$it\")" }.orEmpty()
+            appendLine("- ${d.name}$own [${d.address}] ${d.type}, ${d.kind}, ${if (d.bonded) "bonded" else "not bonded"}, $conn")
             val s = input.signals[d.address]
             if (s == null) {
                 appendLine("  signal: never heard")
@@ -62,14 +80,15 @@ object DiagnosticsReport {
                     ),
                 )
             }
+            appendLine("  test: " + (input.tests[d.address]?.let(::testSummary) ?: "not run"))
         }
         val matches = nameMatches(input.devices, input.unmatched)
         appendLine()
         appendLine("Known names heard from a different address (${matches.size}):")
-        matches.forEach { u ->
-            appendLine("- \"${u.name}\" at ${u.address}, ${u.rssi} dBm, %.1f s ago".format((input.nowNanos - u.timeNanos) / 1e9))
-        }
+        matches.forEach { appendLine(advert(it)) }
+        val others = input.unmatched.filter { it !in matches }.sortedByDescending { it.rssi }
         appendLine()
-        append("Other named adverts heard: ${input.unmatched.size - matches.size}")
-    }
+        appendLine("Other named adverts heard (${others.size}), strongest first:")
+        others.forEach { appendLine(advert(it)) }
+    }.trimEnd()
 }

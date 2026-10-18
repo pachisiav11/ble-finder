@@ -131,13 +131,15 @@ class KnownDevices(private val context: Context, private val manager: BluetoothM
 
         _devices.value = byAddress.values.map { d ->
             val cls = runCatching { d.bluetoothClass }.getOrNull()
+            val name = displayName(d)
             KnownDevice(
                 address = d.address,
-                name = displayName(d),
+                name = name,
                 type = DeviceClassification.linkType(d.type),
                 kind = DeviceClassification.kind(cls?.majorDeviceClass, cls?.deviceClass),
                 bonded = d.bondState == BluetoothDevice.BOND_BONDED,
                 connected = connected[d.address].orEmpty(),
+                ownName = d.name?.takeIf { it.isNotBlank() && it != name },
             )
         }
     }

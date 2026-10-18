@@ -21,7 +21,8 @@ data class SignalState(
     val countBySource: Map<Source, Int>,
     val lastSeenBySource: Map<Source, Long>,
 ) {
-    fun ageSeconds(nowNanos: Long): Double = (nowNanos - lastSeenNanos) / 1e9
+    // Clamped: the UI's clock ticks every 250 ms, so a sample can be newer than "now".
+    fun ageSeconds(nowNanos: Long): Double = maxOf(0.0, (nowNanos - lastSeenNanos) / 1e9)
 
     fun isFresh(nowNanos: Long): Boolean = ageSeconds(nowNanos) <= FRESH_SECONDS
 

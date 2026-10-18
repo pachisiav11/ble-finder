@@ -15,6 +15,8 @@ data class KnownDevice(
     val kind: DeviceKind,
     val bonded: Boolean,
     val connected: Set<ConnectedVia>,
+    /** The name the device reports itself, when it differs from [name] (a user-set alias). Adverts carry this one. */
+    val ownName: String? = null,
 ) {
     /** Connected for audio over classic Bluetooth: Android exposes no RSSI for that link. */
     val classicAudioOnly: Boolean
@@ -28,6 +30,9 @@ data class RssiSample(
     val source: Source,
     val timeNanos: Long,
 )
+
+/** What one Diagnostics "Test all sources" run got from each source (sample counts gained in each step). */
+data class SourceTestResult(val adv: Int, val gatt: Int, val gattConnected: Boolean, val gattError: Int, val classic: Int)
 
 /** A BLE advert with a name that did not match any known address. Used by Diagnostics only. */
 data class UnmatchedAdvert(val address: String, val name: String, val rssi: Int, val timeNanos: Long)

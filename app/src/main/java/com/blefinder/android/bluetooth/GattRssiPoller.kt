@@ -31,7 +31,7 @@ class GattRssiPoller(private val context: Context, private val onSample: (RssiSa
     private val _state = MutableStateFlow(GattState.IDLE)
     val state: StateFlow<GattState> = _state.asStateFlow()
 
-    /** Last non-zero status from a dropped connection, for Diagnostics (133 is the usual one). */
+    /** Last non-zero status from a dropped connection to the current target, for Diagnostics (133 is the usual one). */
     var lastError: Int = 0
         private set
 
@@ -81,6 +81,7 @@ class GattRssiPoller(private val context: Context, private val onSample: (RssiSa
         stop()
         device = target
         attempts = 0
+        lastError = 0
         connect()
     }
 

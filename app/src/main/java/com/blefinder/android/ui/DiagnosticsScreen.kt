@@ -48,6 +48,7 @@ import com.blefinder.android.bluetooth.KnownDevice
 import com.blefinder.android.bluetooth.ScanStatus
 import com.blefinder.android.bluetooth.Source
 import com.blefinder.android.bluetooth.SourceTest
+import com.blefinder.android.bluetooth.SourceTestResult
 import com.blefinder.android.diagnostics.DiagnosticsInput
 import com.blefinder.android.diagnostics.DiagnosticsReport
 import com.blefinder.android.signal.SignalMath.formatAge
@@ -68,6 +69,7 @@ fun DiagnosticsScreen(onBack: (() -> Unit)?) {
     val gattState by repo.gatt.state.collectAsStateWithLifecycle()
     val classicRunning by repo.classic.running.collectAsStateWithLifecycle()
     val test by repo.test.collectAsStateWithLifecycle()
+    val testResults by repo.testResults.collectAsStateWithLifecycle()
     val now by rememberNowNanos()
     val sensors = remember { sensorList(context) }
 
@@ -89,6 +91,7 @@ fun DiagnosticsScreen(onBack: (() -> Unit)?) {
         classicRunning = classicRunning,
         devices = devices,
         signals = signals,
+        tests = testResults,
         unmatched = unmatched.values,
         nowNanos = now,
     )
@@ -142,7 +145,7 @@ fun DiagnosticsScreen(onBack: (() -> Unit)?) {
                 )
             }
             items(devices, key = { it.address }) { d ->
-                DeviceDiagnostics(d, signals[d.address], now, test, onTest = { repo.testSources(d.address) })
+                DeviceDiagnostics(d, signals[d.address], now, test, testResults[d.address], onTest = { repo.testSources(d.address) })
             }
             item {
                 Text(
@@ -170,7 +173,7 @@ fun DiagnosticsScreen(onBack: (() -> Unit)?) {
 }
 
 @Composable
-private fun DeviceDiagnostics(d: KnownDevice, s: SignalState?, now: Long, test: SourceTest?, onTest: () -> Unit) {
+private fun DeviceDiagnostics(d: KnownDevice, s: SignalState?, now: Long, test: SourceTest?, result: SourceTestResult?, onTest: () -> Unit) {
     InfoCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(d.kind.icon(), contentDescription = null)
@@ -179,6 +182,7 @@ private fun DeviceDiagnostics(d: KnownDevice, s: SignalState?, now: Long, test: 
                 Text(d.address, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
             }
         }
+        d.ownName?.let { Line("Own name", it) }
         Line("Type", "${d.type} · ${d.kind} · ${if (d.bonded) "bonded" else "not bonded"}")
         Line("Connected", if (d.connected.isEmpty()) "no" else d.connected.joinToString(" + "))
         if (s == null) {
@@ -187,6 +191,7 @@ private fun DeviceDiagnostics(d: KnownDevice, s: SignalState?, now: Long, test: 
             Line("Signal", "last ${s.last} dBm · filtered %.1f · %s via %s".format(s.filtered, formatAge(s.ageSeconds(now)), s.lastSource))
             Line("Samples", Source.entries.joinToString(" · ") { "$it ${s.countBySource[it] ?: 0}" })
         }
+        result?.let { Line("Last test", DiagnosticsReport.testSummary(it)) }
         val running = test?.takeIf { it.address == d.address }
         when {
             running != null && running.step != SourceTest.Step.DONE -> {

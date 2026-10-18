@@ -51,6 +51,9 @@ class BluetoothRepository(
     private val _test = MutableStateFlow<SourceTest?>(null)
     val test: StateFlow<SourceTest?> = _test.asStateFlow()
 
+    private val _testResults = MutableStateFlow<Map<String, SourceTestResult>>(emptyMap())
+    val testResults: StateFlow<Map<String, SourceTestResult>> = _testResults.asStateFlow()
+
     private var started = false
     private var holders = 0
     private var target: String? = null
@@ -149,20 +152,36 @@ class BluetoothRepository(
         if (!started || testJob?.isActive == true) return
         val savedTarget = target
         targetJob?.cancel()
+        fun count(source: Source) = tracker.states.value[address]?.countBySource?.get(source) ?: 0
         testJob = scope.launch {
             try {
                 _test.value = SourceTest(address, SourceTest.Step.BLE)
+                val adv0 = count(Source.ADV)
                 delay(10_000)
+                val adv = count(Source.ADV) - adv0
+
                 _test.value = SourceTest(address, SourceTest.Step.GATT)
+                val gatt0 = count(Source.GATT)
+                gatt.stop()
+                var gattConnected = false
+                val watch = launch { gatt.state.collect { if (it == GattState.CONNECTED) gattConnected = true } }
                 known.device(address)?.let { gatt.start(it) }
                 delay(10_000)
+                watch.cancel()
+                val gattError = gatt.lastError
+                val gattSamples = count(Source.GATT) - gatt0
                 gatt.stop()
+
                 _test.value = SourceTest(address, SourceTest.Step.CLASSIC)
+                val classic0 = count(Source.CLASSIC)
                 startClassicSearch()
                 val startCycles = classic.cycles.value
                 val deadline = SystemClock.elapsedRealtime() + 16_000
                 while (classic.cycles.value == startCycles && SystemClock.elapsedRealtime() < deadline) delay(250)
                 stopClassicSearch()
+
+                _testResults.value += address to
+                    SourceTestResult(adv, gattSamples, gattConnected, gattError, count(Source.CLASSIC) - classic0)
                 _test.value = SourceTest(address, SourceTest.Step.DONE)
             } finally {
                 gatt.stop()
