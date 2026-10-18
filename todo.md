@@ -1,6 +1,5 @@
 # BLE Finder — TODO
 
-- 2026-10-18 20:04: Phase 1 — known devices, BLE/GATT/classic signal sources, Kalman tracker, Diagnostics with Copy report; hand over APK v0.1.0
 - 2026-10-18 20:04: Phase 1 follow-up — read the user's diagnostics report; decide whether the address-matching fallback is needed
 - 2026-10-18 20:04: Phase 2 — device list, pin + rename (DataStore); APK v0.2.0
 - 2026-10-18 20:04: Phase 3 — finder gauge, source fallback, vibration, keep screen on; APK v0.3.0
