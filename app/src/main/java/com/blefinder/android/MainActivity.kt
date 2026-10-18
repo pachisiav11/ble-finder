@@ -1,5 +1,6 @@
 package com.blefinder.android
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,11 +15,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.blefinder.android.ui.DeviceListScreen
 import com.blefinder.android.ui.DiagnosticsScreen
+import com.blefinder.android.ui.FinderScreen
 import com.blefinder.android.ui.PermissionScreen
 import com.blefinder.android.ui.theme.BleFinderTheme
 
@@ -57,16 +61,22 @@ private fun AppNavHost() {
     NavHost(navController = nav, startDestination = Routes.DEVICES) {
         composable(Routes.DEVICES) {
             DeviceListScreen(
-                onOpen = { },
+                onOpen = { address -> nav.navigate(Routes.finder(address)) },
                 onDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
                 onSettings = null,
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.FINDER, arguments = listOf(navArgument("address") { type = NavType.StringType })) { entry ->
+            FinderScreen(address = Uri.decode(entry.arguments?.getString("address").orEmpty()), onBack = { nav.popBackStack() })
+        }
     }
 }
 
 object Routes {
     const val DEVICES = "devices"
     const val DIAGNOSTICS = "diagnostics"
+    const val FINDER = "finder/{address}"
+
+    fun finder(address: String) = "finder/${Uri.encode(address)}"
 }

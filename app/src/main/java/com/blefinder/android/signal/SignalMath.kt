@@ -45,6 +45,9 @@ object SignalMath {
     fun strength(rssi: Double, cold: Int = -100, hot: Int = -40): Double =
         ((rssi - cold) / (hot - cold)).coerceIn(0.0, 1.0)
 
+    /** Gap between vibration pulses: 1.5 s when cold down to 120 ms when hot. */
+    fun vibrationIntervalMs(strength: Double): Long = (1500 - 1380 * strength.coerceIn(0.0, 1.0)).roundToInt().toLong()
+
     fun formatAge(seconds: Double): String = when {
         seconds < 10 -> "%.1f s ago".format(seconds)
         seconds < 90 -> "${seconds.toInt()} s ago"

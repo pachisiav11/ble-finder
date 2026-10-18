@@ -48,4 +48,12 @@ class SignalMathTest {
         assertThat(SignalMath.strength(-20.0)).isEqualTo(1.0)
         assertThat(SignalMath.strength(-120.0)).isEqualTo(0.0)
     }
+
+    @Test
+    fun vibrationSpeedsUpAsSignalStrengthens() {
+        assertThat(SignalMath.vibrationIntervalMs(0.0)).isEqualTo(1500)
+        assertThat(SignalMath.vibrationIntervalMs(1.0)).isEqualTo(120)
+        assertThat(SignalMath.vibrationIntervalMs(0.5)).isEqualTo(810)
+        assertThat(SignalMath.vibrationIntervalMs(3.0)).isEqualTo(120)
+    }
 }
