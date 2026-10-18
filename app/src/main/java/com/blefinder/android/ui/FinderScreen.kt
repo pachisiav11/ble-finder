@@ -8,7 +8,6 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MobileOff
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,12 +47,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.blefinder.android.app
 import com.blefinder.android.bluetooth.GattState
 import com.blefinder.android.bluetooth.LinkType
+import com.blefinder.android.map.MapSession
+import com.blefinder.android.motion.MotionAvailability
 import com.blefinder.android.signal.SignalMath
 import com.blefinder.android.ui.components.Gauge
 import com.blefinder.android.ui.components.rememberNowNanos
@@ -79,6 +83,13 @@ fun FinderScreen(address: String, onBack: () -> Unit) {
     val strength = signal?.let { SignalMath.strength(it.filtered) } ?: 0.0
 
     var vibrate by rememberSaveable { mutableStateOf(true) }
+    val session: MapSession = viewModel(key = "map-$address") { MapSession(address, app.tracker, app.motion) }
+    val frame by session.frame.collectAsStateWithLifecycle()
+    var motion by remember { mutableStateOf(app.motion.availability()) }
+    LifecycleStartEffect(motion) {
+        if (motion == MotionAvailability.OK) app.motion.start()
+        onStopOrDispose { app.motion.stop() }
+    }
     val openedAt = remember { now }
 
     DisposableEffect(address) {
@@ -100,6 +111,7 @@ fun FinderScreen(address: String, onBack: () -> Unit) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
+                    IconButton(onClick = session::reset) { Icon(Icons.Outlined.RestartAlt, contentDescription = "Reset map") }
                     IconToggleButton(checked = vibrate, onCheckedChange = { vibrate = it }) {
                         Icon(
                             if (vibrate) Icons.Outlined.Vibration else Icons.Outlined.MobileOff,
@@ -152,9 +164,12 @@ fun FinderScreen(address: String, onBack: () -> Unit) {
                 }
             }
 
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                FinderMapArea(address = address)
-            }
+            FinderMapArea(
+                frame = frame,
+                availability = motion,
+                onMotionGranted = { motion = app.motion.availability() },
+                modifier = Modifier.weight(1f),
+            )
             Text(
                 "Hold the phone in front of you and turn slowly — your body alone can cut the signal a lot.",
                 style = MaterialTheme.typography.bodySmall,
